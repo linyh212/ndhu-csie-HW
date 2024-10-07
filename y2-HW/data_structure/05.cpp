@@ -87,28 +87,22 @@ public:
 	}
 	void insertionSort(){
 		if(list==NULL) return;
-		Node *sort=NULL;
-		Node *current=list;
+		Node *current=list->getNext();
 		while(current!=NULL){
-			Node *next=current->getNext();
-			if(sort==NULL||sort->getData()>=current->getData()){
-				current->setNext(sort);
-				if(sort!=NULL) sort->setPre(current);
-				sort=current;
-			}
+	        int key=current->getData();
+	        Node *sort=current->getPre();
+	        while(sort!=NULL&&sort->getData()>key){
+	            sort->getNext()->setData(sort->getData());
+	            sort=sort->getPre();
+	        }
+	        if(sort==NULL){
+	            list->setData(key);
+	        }
 			else{
-				Node *temp=sort;
-				while(temp->getNext()!=NULL&&temp->getNext()->getData()<current->getData()){
-					temp=temp->getNext();
-				}
-				current->setNext(temp->getNext());
-				if(temp->getNext()!=NULL) temp->getNext()->setPre(current);
-				temp->setNext(current);
-				current->setPre(temp);
-			}
-			current=next;
-		}
-		list=sort;
+	            sort->getNext()->setData(key);
+	        }        
+	        current=current->getNext();
+	    }
 	}
 	void print(){
 		Node *cur=list;
