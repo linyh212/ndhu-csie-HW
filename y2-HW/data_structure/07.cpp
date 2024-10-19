@@ -43,7 +43,7 @@ public:
 			data[top].setRow(r);
 			data[top].setCol(c);
 			top++;
-		}	
+		}
 	}
 	/*
 	function removeElement
@@ -162,4 +162,3 @@ int main(){
 	maze->printMaze();
 	maze->getPath()->printList();
 }
-
