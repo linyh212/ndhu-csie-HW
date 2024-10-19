@@ -90,11 +90,11 @@ public:
 	Randomly generate 20% wall in the maze.
 	Make sure start point and finish point are 0
 
-	°ÊºA°t¸m¤@­Ó¤GºûªºÃìµ²¦ê¦C¡A¤j¤p¬O s * s¡A¥Î³o­ÓÃìµ²¦ê¦Cªí¥Ü°g®cªº¦a¹Ï
-	¸`ÂI¤¤ 0 ªº­Èªí¥Ü¥i¥H²¾°ÊªºªÅ¶¡¡A 1 ªí¥ÜÀð¾À 
-	¥ª¤W¨¤ªº¦ì¸mªí¥Ü°_ÂI¡A¥k¤U¨¤ªº¦ì¸mªí¥Ü²×ÂI
-	½Ð¦b°g®c¤¤¥[¤J 20% ªºÀð¾À 
-	µM«á½T©w°_ÂI¸ò²×ÂI³£¬O¥i¥H²¾°Êªº¦ì¸m 
+	å‹•æ…‹é…ç½®ä¸€å€‹äºŒç¶­çš„éˆçµä¸²åˆ—ï¼Œå¤§å°æ˜¯ s * sï¼Œç”¨é€™å€‹éˆçµä¸²åˆ—è¡¨ç¤ºè¿·å®®çš„åœ°åœ–
+	ç¯€é»žä¸­ 0 çš„å€¼è¡¨ç¤ºå¯ä»¥ç§»å‹•çš„ç©ºé–“ï¼Œ 1 è¡¨ç¤ºç‰†å£ 
+	å·¦ä¸Šè§’çš„ä½ç½®è¡¨ç¤ºèµ·é»žï¼Œå³ä¸‹è§’çš„ä½ç½®è¡¨ç¤ºçµ‚é»ž
+	è«‹åœ¨è¿·å®®ä¸­åŠ å…¥ 20% çš„ç‰†å£ 
+	ç„¶å¾Œç¢ºå®šèµ·é»žè·Ÿçµ‚é»žéƒ½æ˜¯å¯ä»¥ç§»å‹•çš„ä½ç½® 
 	*/
 	void initMaze(int s){
 		maze=new Grid*[s];
@@ -110,7 +110,7 @@ public:
                 if(j>0) maze[i][j].setDir(LEFT, &maze[i][j-1]);
                 if(j<s-1) maze[i][j].setDir(RIGHT, &maze[i][j+1]);
             }
-        }		
+        }
 		srand(time(0));
 		while(wallCount>0){
 	        int x=rand()%s;
@@ -138,9 +138,9 @@ public:
 	Return a list content the path information inside.
 	If there is no path between two point then the list will be empty.
 
-	³o­Ó¨ç¼Æ·|§ä¨ì°_ÂI¨ì²×ÂI¶¡ªº¤@±ø¸ô®|
-	¦^¶Ç¤@­Ó list ¥]§tµÛ¸ô®|ªº¸ê°T
-	¦pªG§ä¤£¨ì¸ô®|ªº¸Ü list ´N·|¬OªÅªº 
+	é€™å€‹å‡½æ•¸æœƒæ‰¾åˆ°èµ·é»žåˆ°çµ‚é»žé–“çš„ä¸€æ¢è·¯å¾‘
+	å›žå‚³ä¸€å€‹ list åŒ…å«è‘—è·¯å¾‘çš„è³‡è¨Š
+	å¦‚æžœæ‰¾ä¸åˆ°è·¯å¾‘çš„è©± list å°±æœƒæ˜¯ç©ºçš„ 
 	*/
 	List *getPath(){
 		List *path=new List();
@@ -171,4 +171,3 @@ int main(){
 	maze->printMaze();
 	maze->getPath()->printPath();
 }
-
