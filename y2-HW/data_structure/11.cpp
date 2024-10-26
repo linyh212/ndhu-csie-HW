@@ -12,8 +12,8 @@ private:
 		Node(T value): data(value), left(nullptr), right(nullptr){}
 	};
 	void inorder(Node *cur){
-	    if(!cur)            
-			return;     
+		if(!cur)
+			return; 
 		inorder(cur->left);
 		cout<<cur->data<<" ";
 		inorder(cur->right);
@@ -93,4 +93,3 @@ int main(){
 		}
 	}
 }
-
