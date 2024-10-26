@@ -43,7 +43,7 @@ public:
 			data[top].setRow(r);
 			data[top].setCol(c);
 			top++;
-		}
+		}	
 	}
 	/*
 	function removeElement
@@ -80,11 +80,11 @@ public:
 	Randomly generate 20% wall in the maze.
 	Make sure [0][0] and [s - 1][s - 1] are 0
 
-	å‹•æ…‹é…ç½®ä¸€å€‹äºŒç¶­çš„é™£åˆ—ï¼Œå¤§å°æ˜¯ s * s ï¼Œç”¨é€™å€‹é™£åˆ—è¡¨ç¤ºè¿·å®®çš„åœ°åœ–
-	é™£åˆ—ä¸­ 0 çš„å€¼è¡¨ç¤ºå¯ä»¥ç§»å‹•çš„ç©ºé–“ï¼Œ 1 è¡¨ç¤ºç‰†å£ 
-	[0][0] çš„ä½ç½®è¡¨ç¤ºèµ·é» [s - 1][s - 1] çš„ä½ç½®è¡¨ç¤ºçµ‚é»
-	è«‹åœ¨è¿·å®®ä¸­åŠ å…¥ 20% çš„ç‰†å£ 
-	ç„¶å¾Œç¢ºå®šèµ·é»è·Ÿçµ‚é»éƒ½æ˜¯å¯ä»¥ç§»å‹•çš„ä½ç½® 
+	°ÊºA°t¸m¤@­Ó¤Gºûªº°}¦C¡A¤j¤p¬O s * s ¡A¥Î³o­Ó°}¦Cªí¥Ü°g®cªº¦a¹Ï
+	°}¦C¤¤ 0 ªº­Èªí¥Ü¥i¥H²¾°ÊªºªÅ¶¡¡A 1 ªí¥ÜÀğ¾À 
+	[0][0] ªº¦ì¸mªí¥Ü°_ÂI [s - 1][s - 1] ªº¦ì¸mªí¥Ü²×ÂI
+	½Ğ¦b°g®c¤¤¥[¤J 20% ªºÀğ¾À 
+	µM«á½T©w°_ÂI¸ò²×ÂI³£¬O¥i¥H²¾°Êªº¦ì¸m 
 	*/
 	void initMaze(int s){
 		maze=new int*[s];
@@ -96,12 +96,12 @@ public:
             for(int j=0; j<s; j++){
                 maze[i][j]=0;
             }
-        }
+        }		
 		srand(time(0));
 		while(wallCount>0){
 	        int r=rand()%s;
 	        int c=rand()%s;
-	        if((r!=0||c!=0)&&(r!=s-1||c!=s-1)&&maze[r][c]==0){
+	        if(((r!=0&&c!=0)||(r!=s-1&&c!=s-1))&&maze[r][c]==0){
 	            maze[r][c]=1;
 	            wallCount--;
 	        }
@@ -128,9 +128,9 @@ public:
 	Return a list content the path information inside.
 	If there is no path between two point then the list will be empty.
 
-	é€™å€‹å‡½æ•¸æœƒæ‰¾åˆ°èµ·é»åˆ°çµ‚é»é–“çš„ä¸€æ¢è·¯å¾‘
-	å›å‚³ä¸€å€‹ list åŒ…å«è‘—è·¯å¾‘çš„è³‡è¨Š
-	å¦‚æœæ‰¾ä¸åˆ°è·¯å¾‘çš„è©± list å°±æœƒæ˜¯ç©ºçš„ 
+	³o­Ó¨ç¼Æ·|§ä¨ì°_ÂI¨ì²×ÂI¶¡ªº¤@±ø¸ô®|
+	¦^¶Ç¤@­Ó list ¥]§tµÛ¸ô®|ªº¸ê°T
+	¦pªG§ä¤£¨ì¸ô®|ªº¸Ü list ´N·|¬OªÅªº 
 	*/
 	List *getPath(){
 		List *path=new List();
@@ -162,3 +162,4 @@ int main(){
 	maze->printMaze();
 	maze->getPath()->printList();
 }
+
