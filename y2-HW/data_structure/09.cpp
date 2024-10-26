@@ -57,7 +57,7 @@ private:
 		if(index>=numOfElement) return;
 		post(2*index+1);
 		post(2*index+2);
-		cout<<array[index]<<" ";		
+		cout<<array[index]<<" ";
 	}
 };
 
@@ -155,4 +155,3 @@ int main(){
 	cout<<endl;
 	return 0;
 }
-
