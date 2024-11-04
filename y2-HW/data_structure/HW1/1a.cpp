@@ -27,7 +27,7 @@ public:
 
 /*int main(){
     numberguessing game;
-    game.Set(50); // Set the target number to 50
+    game.Set(50);
 	int guess;
     int result;
     do{
