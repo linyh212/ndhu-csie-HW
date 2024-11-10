@@ -45,7 +45,7 @@ public:
 private:
     //create any member you need to complete MinMaxHap
     bool isMinLevel(int index) const{
-		return static_cast<int>(std::log2(index+1))%2==0;  	
+		return static_cast<int>(std::log2(index+1))%2==0;
 	}
     std::vector<T> data;
     void bubbleUp(int index){
@@ -155,7 +155,7 @@ int main(){
 			break;
 		}
     }
-    std::cout<<std::endl;    
+    std::cout<<std::endl;
     for(j=0; j<10; j++)
 		mmHeap.insert(rand()%100);
     while(true){
