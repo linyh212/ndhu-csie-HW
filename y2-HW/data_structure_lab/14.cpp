@@ -42,8 +42,7 @@ public:
         if(maxIndex<heap.size()) check_down(maxIndex);
     }
 private:
-<<<<<<< HEAD
-	//create any member you need to complete MinMaxHap
+    //create any member you need to complete MinMaxHap
     std::vector<T> heap;
     bool empty() const{
         return heap.size()==0;
@@ -62,13 +61,11 @@ private:
         }
         return level%2==0;
     }
-=======
     //create any member you need to complete MinMaxHap
     bool isMinLevel(int index) const{
 		return static_cast<int>(std::log2(index+1))%2==0;
 	}
     std::vector<T> data;
->>>>>>> 49dab70c079fc5b6f94be720c1a858143234fc5b
     void bubbleUp(int index){
         if(index==0) return;
         int parent=(index-1)/2;
