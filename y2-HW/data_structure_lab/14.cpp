@@ -6,138 +6,133 @@ public:
 	MinMaxHeap(){}
     //The insert function in a Min-Max Heap adds a new element to the heap while maintaining its unique properties.
     void insert(T value){
-    	data.push_back(value);
-    	bubbleUp(data.size()-1);
+    	if(search(value)) return;
+        heap.push_back(value);
+        bubbleUp(heap.size()-1);
     }
     // Retrieve the minimum element in the heap, throw an exception when heap is empty
     T getMin() const{
-    	if(data.empty()) throw std::runtime_error("Heap is empty");
-    	return data[0];
+    	if(empty()) throw std::runtime_error("Heap is empty");
+        return heap[0];
     }
     // Retrieve the maximum element in the heap, throw an exception when heap is empty
     T getMax() const{
-    	if(data.empty()) throw std::runtime_error("Heap is empty");
-    	if(data.size()==1) return data[0];
-    	if(data.size()==2) return data[1];
-    	return std::max(data[1], data[2]);
+    	if(empty()) throw std::runtime_error("Heap is empty");
+    	if(heap.size()==1) return heap[0];
+        if(heap.size()==2) return heap[1];
+    	return std::max(heap[1], heap[2]);
     }
     // Delete the minimum element in the heap, throw an exception when heap is empty
     void deleteMin(){
-    	if(data.empty()) throw std::runtime_error("Heap is empty");
-    	data[0]=data.back();
-    	data.pop_back();
-    	trickleDown(0);
+    	if(empty()) throw std::runtime_error("Heap is empty");
+    	heap[0]=heap.back();
+        heap.pop_back();
+        check_down(0);
     }
     // Delete the maximum element in the heap, throw an exception when heap is empty
     void deleteMax(){
-    	if(data.empty()) throw std::runtime_error("Heap is empty");
-    	int maxIndex;
-    	if(data.size()==1){
-    		data.pop_back();
-    		return;
-		}
-		else if(data.size()==2) maxIndex=1;
-		else maxIndex=(data[1]>data[2])? 1 : 2;
-		data[maxIndex]=data.back();
-		data.pop_back();
-		trickleDown(maxIndex);
+    	if(empty()) throw std::runtime_error("Heap is empty");
+    	if(heap.size()==1){
+            heap.pop_back();
+            return;
+        }
+        int maxIndex=(heap.size()==2||heap[1]>heap[2])? 1:2;
+        heap[maxIndex]=heap.back();
+        heap.pop_back();
+        if(maxIndex<heap.size()) check_down(maxIndex);
     }
 private:
-    //create any member you need to complete MinMaxHap
-    bool isMinLevel(int index) const{
-		return static_cast<int>(std::log2(index+1))%2==0;  	
-	}
-    std::vector<T> data;
+	//create any member you need to complete MinMaxHap
+    std::vector<T> heap;
+    bool empty() const{
+        return heap.size()==0;
+    }
+    bool search(int value){
+        for(int i=0; i<heap.size(); i++){
+            if(heap[i]==value) return true;
+        }
+        return false;
+    }
+    bool minLevel(int index){
+        int level=0;
+        while(index>0){
+            index=(index-1)/2;
+            level++;
+        }
+        return level%2==0;
+    }
     void bubbleUp(int index){
-    	if(index==0) return;
-    	int parent=(index-1)/2;
-    	if(isMinLevel(index)){
-    		if(data[index]>data[parent]){
-    			std::swap(data[index], data[parent]);
-    			bubbleMax(parent);
-			}
-			else bubbleMin(index);
-		}
+        if(index==0) return;
+        int parent=(index-1)/2;
+        if(heap[index]==heap[parent]) return;
+        if(minLevel(index)){
+            if(heap[index]>heap[parent]){
+                std::swap(heap[index], heap[parent]);
+                max_bubble(parent);
+            }
+			else min_bubble(index);
+        }
 		else{
-			if(data[index]<data[parent]){
-    			std::swap(data[index], data[parent]);
-    			bubbleMin(parent);
-			}
-			else bubbleMax(index);
-		}
-	}
-	void bubbleMin(int index){
-		int grandparent=(index-3)/4;
-		if(grandparent>=0&&data[index]<data[grandparent]){
-    		std::swap(data[index], data[grandparent]);
-    		bubbleMin(grandparent);
-		}
-	}
-	void bubbleMax(int index){
-		int grandparent=(index-3)/4;
-		if(grandparent>=0&&data[index]>data[grandparent]){
-    		std::swap(data[index], data[grandparent]);
-    		bubbleMax(grandparent);
-		}
-	}
-	void trickleDown(int index){
-		if(isMinLevel(index)) trickleMin(index);
-		else trickleMax(index);
-	}
-	void trickleMin(int index){
-		int minChild=MinOrGrand(index);
-		if(minChild==-1) return;
-		if(minChild>(index*2+1)){
-			if(data[minChild]<data[index]){
-				std::swap(data[minChild], data[index]);
-				int parent=(minChild-1)/2;
-				if(data[minChild]>data[parent]) std::swap(data[minChild], data[parent]);
-				trickleMin(minChild);
-			}
-		}
-		else{
-			if(data[minChild]<data[index]) std::swap(data[minChild], data[index]);
-		}
-	}
-	void trickleMax(int index){
-		int maxChild=MaxOrGrand(index);
-		if(maxChild==-1) return;
-		if(maxChild>(index*2+1)){
-			if(data[maxChild]>data[index]){
-				std::swap(data[maxChild], data[index]);
-				int parent=(maxChild-1)/2;
-				if(data[maxChild]<data[parent]) std::swap(data[maxChild], data[parent]);
-				trickleMin(maxChild);
-			}
-		}
-		else{
-			if(data[maxChild]>data[index]) std::swap(data[maxChild], data[index]);
-		}
-	}
-	int MinOrGrand(int index) const{
-		int size=data.size();
-		int firstChild=2*index+1;
-		int minIndex=-1;
-		if(firstChild<size){
-			minIndex=firstChild;
-			for(int i=1; i<=3&&firstChild+i<size; i++){
-				if(data[firstChild+i]<data[minIndex]) minIndex=firstChild+i;
-			}
-		}
-		return minIndex;
-	}
-	int MaxOrGrand(int index) const{
-		int size=data.size();
-		int firstChild=2*index+1;
-		int maxIndex=-1;
-		if(firstChild<size){
-			maxIndex=firstChild;
-			for(int i=1; i<=3&&firstChild+i<size; i++){
-				if(data[firstChild+i]>data[maxIndex]) maxIndex=firstChild+i;
-			}
-		}
-		return maxIndex;
-	}
+            if(heap[index]<heap[parent]){
+                std::swap(heap[index], heap[parent]);
+                min_bubble(parent);
+            }
+			else max_bubble(index);
+        }
+    }
+    void min_bubble(int index){
+        int grandparent=(index-3)/4;
+        if(index>2&&heap[index]<heap[grandparent]){
+            std::swap(heap[index], heap[grandparent]);
+            min_bubble(grandparent);
+        }
+    }
+    void max_bubble(int index){
+        int grandparent=(index-3)/4;
+        if(heap[index]==heap[grandparent]) return;
+        if(index>2&&heap[index]>heap[grandparent]){
+            std::swap(heap[index], heap[grandparent]);
+            max_bubble(grandparent);
+        }
+    }
+    void check_down(int index){
+        if(minLevel(index)) check_min(index);
+		else check_max(index);
+    }
+    void check_min(int index){
+        int min=index;
+        int left=2*index+1;
+        int right=2*index+2;
+        if(left<heap.size()&&heap[left]<heap[min]) min=left;
+        if(right<heap.size()&&heap[right]<heap[min]) min=right;
+        for(int i=1; i<=2; i++){
+            int grandchild=2*left+i;
+            if(grandchild<heap.size()&&heap[grandchild]<heap[min]) min=grandchild;
+            grandchild=2*right+i;
+            if(grandchild<heap.size()&&heap[grandchild]<heap[min]) min=grandchild;
+        }
+        if(min!=index){
+            std::swap(heap[index], heap[min]);
+            if(min<(heap.size()/2)) check_min(min);
+        }
+    }
+    void check_max(int index){
+        int max=index;
+        int left=2*index+1;
+        int right=2*index+2;
+        if(left<heap.size()&&heap[left]>heap[max]) max=left;
+        if(right<heap.size()&&heap[right]>heap[max]) max=right;
+        for(int i=1; i<=2; i++){
+            int grandchild=2*left+i;
+            if(grandchild<heap.size()&&heap[grandchild]>heap[max]) max=grandchild;
+            grandchild=2*right+i;
+            if(grandchild<heap.size()&&heap[grandchild]>heap[max]) max=grandchild;
+        }
+        if(max!=index){
+            std::swap(heap[index], heap[max]);
+            if(max<(heap.size()/2)) check_max(max);
+        }
+    }
 };
 
 int main(){
@@ -169,4 +164,3 @@ int main(){
 	}
     return 0;
 }
-
