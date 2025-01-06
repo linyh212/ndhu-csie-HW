@@ -11,7 +11,7 @@ public:
 	void PrintAdjacentMatrix();
 	void PrintAdjacentList();
 	vector<tuple<int, int, int>> getEdge();
-	vector<vector<int>> KruskalMST();	
+	vector<vector<int>> KruskalMST();
 private:
 	int NumberVecterxs;
 	int NumberEdges;
@@ -107,7 +107,7 @@ vector<vector<int>> Graph::KruskalMST(){
         if(find(u)!=find(v)){
             merge(u, v);
             mst.push_back({u, v});
-        }        
+        }
         if(mst.size()==NumberVecterxs-1){
             break;
         }
@@ -132,7 +132,7 @@ int main(){
     }
     g2.PrintAdjacentMatrix();
     g2.PrintAdjacentList();
-    cout<<endl;    
+    cout<<endl;
     vector<vector<int>> mst=g2.KruskalMST();
     for(auto &edge: mst){
         if(edge[0]>edge[1]) swap(edge[0], edge[1]);
