@@ -82,15 +82,15 @@ void Graph::BFS(int v){
 void Graph::DFS(int v){
     if(v>=NumberVecterxs){ return; }
     bool *visited=new bool[NumberVecterxs];
-    fill(visited, visited+NumberVecterxs, false);    
+    fill(visited, visited+NumberVecterxs, false);
     list<int> q;
     q.push_back(v);
     while(!q.empty()){
         v=q.back();
-        q.pop_back();        
+        q.pop_back();
         if(visited[v]) continue;
         cout<<v<<endl;
-        visited[v]=true;        
+        visited[v]=true;
         vector<int> neighbors;
         for(auto it: adjacent_list[v]){
             if(!visited[it[0]])
@@ -98,7 +98,7 @@ void Graph::DFS(int v){
         }
         reverse(neighbors.begin(), neighbors.end());
         for(int neighbor: neighbors){
-            q.push_back(neighbor);   
+            q.push_back(neighbor);
         }
     }
     delete[] visited;
@@ -122,7 +122,7 @@ int main(){
     g1.PrintAdjacentMatrix();
     cout<<endl;
     g1.PrintAdjacentList();
-    cout<<endl;    
+    cout<<endl;
     g1.BFS(0);
     cout<<endl;
     g1.DFS(0);
