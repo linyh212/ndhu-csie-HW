@@ -69,12 +69,12 @@ vector<vector<int>> Graph::PrimMST(int vertex){
     pq.push({0, vertex});
     while(!pq.empty()){
         int u=pq.top().second;
-        pq.pop();        
-        if(visited[u]){ continue; }        
-        visited[u]=true;        
+        pq.pop();
+        if(visited[u]){ continue; }
+        visited[u]=true;
         if(parent[u]!=-1){
             mst.push_back({parent[u], u, minWeight[u]});
-        }        
+        }
         for(auto &neighbor : adjacent_list[u]){
             int v=neighbor[0];
             int weight=neighbor[1];
@@ -105,7 +105,7 @@ int main(){
     }
     g2.PrintAdjacentMatrix();
     g2.PrintAdjacentList();
-    cout<<endl;    
+    cout<<endl;
     vector<vector<int>> mst=g2.PrimMST(0);
     for(auto &edge: mst){
         if(edge[0]>edge[1]) swap(edge[0], edge[1]);
