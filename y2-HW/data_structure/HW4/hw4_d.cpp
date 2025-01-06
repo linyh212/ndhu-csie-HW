@@ -63,22 +63,22 @@ void Graph::PrintAdjacentList(){
 vector<vector<int>> Graph::ShortestPaths(int src){
     vector<int> dist(NumberVecterxs, 1e8);
     vector<int> parent(NumberVecterxs, -1);
-    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;    
+    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
     dist[src]=0;
-    pq.push({0, src});    
+    pq.push({0, src});
     while(!pq.empty()){
         int u=pq.top().second;
-        pq.pop();        
+        pq.pop();
         for(auto &neighbor: adjacent_list[u]){
             int v=neighbor[0];
-            int weight=neighbor[1];            
+            int weight=neighbor[1];
             if(dist[u]+weight<dist[v]){
                 dist[v]=dist[u]+weight;
                 parent[v]=u;
                 pq.push({dist[v], v});
             }
         }
-    }    
+    }
     vector<vector<int>> paths(NumberVecterxs);
     for(int i=0;i<NumberVecterxs;i++){
         if(i==src){
