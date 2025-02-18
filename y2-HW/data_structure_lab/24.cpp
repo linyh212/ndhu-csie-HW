@@ -6,7 +6,7 @@
 
 using namespace std;
 
-template<class T>
+template <class T>
 class Node
 {
 public:
@@ -26,12 +26,12 @@ public:
     }
     friend std::ostream &operator<<(std::ostream &out, Node n)
     {
-        out<<(*(n.data));
+        out << (*(n.data));
         return out;
     }
     friend std::ostream &operator<<(std::ostream &out, Node *n)
     {
-        out<<(*(n->data));
+        out << (*(n->data));
         return out;
     }
     void setData(T d)
@@ -42,11 +42,12 @@ public:
     {
         return *data;
     }
+
 protected:
     T *data;
 };
 
-template<class T>
+template <class T>
 class ListNode : public Node<T>
 {
 public:
@@ -91,11 +92,12 @@ public:
         this->setData(d);
         return *this;
     }
+
 private:
     ListNode *prev, *next;
 };
 
-template<class T>
+template <class T>
 class LinkList
 {
 public:
@@ -107,47 +109,47 @@ public:
     void addFromHead(T d)
     {
         ListNode<T> *node = new ListNode<T>(d);
-        if(head != NULL)
+        if (head != NULL)
         {
             head->setPrev(node);
         }
         node->setNext(head);
         head = node;
-        if(tail == NULL)
+        if (tail == NULL)
             tail = node;
     }
     void addFromTail(T d)
     {
         ListNode<T> *node = new ListNode<T>(d);
-        if(tail != NULL)
+        if (tail != NULL)
         {
             tail->setNext(node);
         }
         node->setPrev(tail);
         tail = node;
-        if(head == NULL)
+        if (head == NULL)
             head = node;
     }
     void addAfter(ListNode<T> *at, T d)
     {
-        if(!exist(at))
+        if (!exist(at))
             return;
         ListNode<T> *node = new ListNode<T>(d);
-        if(at->getNext() != NULL)
+        if (at->getNext() != NULL)
             at->getNext()->setPrev(node);
         node->setNext(at->getNext());
         at->setNext(node);
         node->setPrev(at);
-        if(node->getNext() == NULL)
+        if (node->getNext() == NULL)
             tail = node;
     }
     ListNode<T> *removeFromHead()
     {
         ListNode<T> *n = head;
-        if(head != NULL)
+        if (head != NULL)
         {
             head = head->getNext();
-            if(head != NULL)
+            if (head != NULL)
                 head->setPrev(NULL);
             else
                 tail = NULL;
@@ -158,10 +160,10 @@ public:
     ListNode<T> *removeFromTail()
     {
         ListNode<T> *n = tail;
-        if(tail != NULL)
+        if (tail != NULL)
         {
             tail = tail->getPrev();
-            if(tail != NULL)
+            if (tail != NULL)
                 tail->setNext(NULL);
             else
                 head = NULL;
@@ -171,11 +173,11 @@ public:
     }
     ListNode<T> *remove(ListNode<T> *n)
     {
-        if(!exist(n))
+        if (!exist(n))
             return NULL;
-        if(n == head)
+        if (n == head)
             return removeFromHead();
-        if(n == tail)
+        if (n == tail)
             return removeFromTail();
         n->getPrev()->setNext(n->getNext());
         n->getNext()->setPrev(n->getPrev());
@@ -186,9 +188,9 @@ public:
     ListNode<T> *exist(T d)
     {
         ListNode<T> *j = head;
-        while(j != NULL)
+        while (j != NULL)
         {
-            if(j->getData() == d)
+            if (j->getData() == d)
                 return j;
             j = j->getNext();
         }
@@ -197,9 +199,9 @@ public:
     bool exist(ListNode<T> *n)
     {
         ListNode<T> *j = head;
-        while(j != NULL)
+        while (j != NULL)
         {
-            if(j == n)
+            if (j == n)
                 return true;
             j = j->getNext();
         }
@@ -209,9 +211,9 @@ public:
     {
         ListNode<T> *j = head;
         int k;
-        for(k = 0; k < i && j != NULL; k ++)
+        for (k = 0; k < i && j != NULL; k++)
             j = j->getNext();
-        if(j == NULL)
+        if (j == NULL)
             throw std::invalid_argument("index does not exist.");
         return *j;
     }
@@ -219,19 +221,21 @@ public:
     {
         ListNode<T> *j;
         j = head;
-        while(j != NULL)
+        while (j != NULL)
         {
-            std::cout<<(*j)<<" ";
+            std::cout << (*j) << " ";
             j = j->getNext();
         }
-        std::cout<<std::endl;
+        std::cout << std::endl;
     }
+
 protected:
     ListNode<T> *head, *tail;
 };
 
-template<class T1, class T2>
-class Hash {
+template <class T1, class T2>
+class Hash
+{
 public:
     struct Pair
     {
@@ -241,7 +245,7 @@ public:
     Hash()
     {
         int j;
-        for(j = 0;j < 100;j ++)
+        for (j = 0; j < 100; j++)
             table[j] = new LinkList<Pair *>();
     }
     bool insert(Pair *data)
@@ -253,6 +257,7 @@ public:
     Pair *search(T1 key)
     {
     }
+
 private:
     LinkList<Pair *> *table[100];
     unsigned int HASHfunction(T1 k)
@@ -260,13 +265,13 @@ private:
         unsigned int size = sizeof(T1);
         char *p = (char *)&k;
         unsigned int value = 0, j;
-        for(j = 0;j < size;j ++)
+        for (j = 0; j < size; j++)
         {
-            if(j % 2)
+            if (j % 2)
                 value ^= *p;
             else
                 value += *p;
-            p ++;
+            p++;
         }
         return value % 100;
     }
@@ -276,15 +281,15 @@ int main()
 {
     int j;
     Hash<int, string> *hash = new Hash<int, string>();
-    for(j = 1000;j < 1024;j ++)
+    for (j = 1000; j < 1024; j++)
     {
-        Hash<int, string>::Pair *p = new Hash<int, string>::Pair {j, to_string(j)};
+        Hash<int, string>::Pair *p = new Hash<int, string>::Pair{j, to_string(j)};
         hash->insert(p);
     }
-    for(j = 1000;j < 1100;j ++)
+    for (j = 1000; j < 1100; j++)
     {
         Hash<int, string>::Pair *p = hash->search(j);
-        if(p)
+        if (p)
             cout << p->value << endl;
         else
             cout << "miss" << endl;
