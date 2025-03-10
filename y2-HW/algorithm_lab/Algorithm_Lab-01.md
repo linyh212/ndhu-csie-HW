@@ -22,7 +22,7 @@ int Classify(int a) {
 >a=2: 2 comparisons (checks case 0, then case 1, then goes to default)  
 >a=3: 2 comparisons (same as a = 2)
 >Average Time:  
->>Assuming a is uniformly distributed over {1, 2, 3}: (1×1+1×2+1×2)/3 = 3/5 ≈1.67  
+>>Assuming a is uniformly distributed over {1, 2, 3}: (1×1+1×2+1×2)/3 = 5/3 ≈1.67  
 #### Question 3:  
 **Proof:**
 >1. **Given:**  
@@ -36,4 +36,4 @@ int Classify(int a) {
 **Proof:**
 >1. Using the logarithm base change formula: $log_an=\dfrac{log_bn}{log_ba}$  
 >2. Since $log⁡_𝑏𝑎$ is a constant (as 𝑎,𝑏 are fixed and greater than 1), we get: $log_an=O(log_bn)$  
->3. Proof completed.  
+>3. Proof completed.
