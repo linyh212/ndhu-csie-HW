@@ -4,6 +4,7 @@ tags: [Algorithm_Lab]
 
 ---
 
+[![hackmd-github-sync-badge](https://hackmd.io/pYF2HcfhTqKwnzsKt-iN_w/badge)](https://hackmd.io/pYF2HcfhTqKwnzsKt-iN_w)
 #### Question 1:  
 ```c=
 int Classify(int a) {
