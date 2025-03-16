@@ -7,6 +7,8 @@ tags: [Algorithm_Lab]
 Algorithm Lab Homework
 ===
 
+- [Original URL](https://hackmd.io/@linyh212/NDHU_CSIE_AlgorithmLab)
+
 Assignment Question
 ---
 - [Question01](https://hackmd.io/@linyh212/Question01)
