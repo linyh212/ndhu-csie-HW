@@ -1,4 +1,4 @@
-.test
+.text
 main:
 	li 	$v0, 5		#input n
 	syscall			#
