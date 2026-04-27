@@ -1,0 +1,87 @@
+﻿library(dplyr)
+library(readr)
+
+# Fees data (as a text block)
+fees_data <- '
+PaymentType,Amount
+A,0.00
+B,"21,345.00 "
+C,"42,690.00 "
+'
+
+# Student-Main data (using the data from the image)
+student_main_data <- '
+StudentID,Name,PaymentType
+920121001,Andy,A
+920121002,Bob,B
+920121003,Cecil,C
+920121004,Dennis,A
+920121005,Edward,B
+920121006,Felix,C
+920121007,Gigi,B
+920121008,Helen,B
+920121009,Iris,B
+920121010,Jane,A
+920121011,Kate,B
+920121012,Liz,C
+920121013,Martin,A
+920121014,Harry,B
+920121015,Oscar,C
+920121016,Pattle,B
+920121017,Quinn,B
+920121018,Rebecca,B
+'
+
+# Student-Payment data (using the data from the image)
+student_payment_data <- '
+StudentID,AmountPaid
+920121005,"21,345.00 "
+920121009,"21,345.00 "
+920121003,"42,690.00 "
+920121017,"21,345.00 "
+920121012,"21,345.00 "
+920121003,"21,345.00 "
+920121014,"35,000.00 "
+920121018,"21,345.00 "
+920121011,"20,000.00 "
+920121006,"42,690.00 "
+'
+
+# Read the data into data frames
+fees <- read_csv(fees_data, trim_ws = TRUE)
+student_main <- read_csv(student_main_data, trim_ws = TRUE)
+student_payment <- read_csv(student_payment_data, trim_ws = TRUE)
+
+# Clean the Amount columns by removing commas and spaces, convert to numeric
+clean_amount <- function(x) {
+  as.numeric(gsub("[, ]", "", x))
+}
+
+fees <- fees %>%
+  mutate(Amount = clean_amount(Amount))
+
+student_payment <- student_payment %>%
+  mutate(AmountPaid = clean_amount(AmountPaid))
+
+# Join student_main with fees to get required fee for each student
+student_fees <- student_main %>%
+  left_join(fees, by = "PaymentType") %>%
+  rename(RequiredFee = Amount)
+
+# Join with student_payment to get actual amount paid, replace NA with 0 if student hasn't paid
+student_full <- student_fees %>%
+  left_join(student_payment, by = "StudentID") %>%
+  mutate(AmountPaid = ifelse(is.na(AmountPaid), 0, AmountPaid))
+
+# Computation #1: total amount received before due
+total_received <- sum(student_full$AmountPaid)
+cat("Total amount received before due:", total_received, "\n\n")
+
+# Computation #2: students who did not pay full fees with amount short
+students_short <- student_full %>%
+  mutate(AmountShort = RequiredFee - AmountPaid) %>%
+  filter(AmountShort > 0) %>%
+  select(StudentID, Name, PaymentType, RequiredFee, AmountPaid, AmountShort)
+
+cat("Students who did not pay full fees and the amount short:\n")
+print(students_short)
