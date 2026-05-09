@@ -1,5 +1,15 @@
 #include "shell.h"
 
+static int should_read_from_numbered_pipe(char *cmd)
+{
+    for (int i = 0; i < MAX_NPIPES; i++)
+    {
+        if (npipes[i].used && npipes[i].remain == 0)
+            return 1;
+    }
+    return 0;
+}
+
 static int is_valid_command_line(const char *line)
 {
     char line_copy[MAX_LINE];
@@ -13,6 +23,7 @@ static int is_valid_command_line(const char *line)
         if (*endptr == '\0' && n >= 1 && n <= 128)
             *last_pipe = '\0';
     }
+
     char *commands[MAX_CMDS];
     int cmd_count = parse_commands(line_copy, commands);
     for (int i = 0; i < cmd_count; i++)
@@ -24,18 +35,20 @@ static int is_valid_command_line(const char *line)
         if (args[0] == NULL)
             return 0;
         int builtin_type = is_builtin(args);
-        if (builtin_type == 2 || builtin_type == 1)
+        if (builtin_type != 0)
             continue;
         char *fullpath = search_path(args[0]);
         if (fullpath == NULL)
             return 0;
         free(fullpath);
     }
+
     return 1;
 }
 
 int execute_line(char *line)
 {
+    line[strcspn(line, "\r\n")] = '\0';
     char line_copy[MAX_LINE];
     char original_line[MAX_LINE];
     strcpy(line_copy, line);
@@ -55,6 +68,7 @@ int execute_line(char *line)
                 numbered_pipe_fd = create_numbered_pipe((int)n);
         }
     }
+
     char *trimmed = line_copy;
     while (*trimmed == ' ' || *trimmed == '\t')
         trimmed++;
@@ -109,7 +123,9 @@ int execute_line(char *line)
     int output_fd = (numbered_pipe_fd != -1) ? numbered_pipe_fd : STDOUT_FILENO;
     int ret;
     int builtin_type = is_builtin(args);
-    if (builtin_type == 2)
+    if (builtin_type == -1)
+        ret = exec_builtin(args);
+    else if (builtin_type == 2)
         ret = exec_builtin(args);
     else if (builtin_type == 1)
     {
@@ -134,7 +150,6 @@ int execute_line(char *line)
     }
     else
         ret = exec_external(args, input_fd, output_fd);
-
     if (numbered_pipe_fd != -1)
         close(numbered_pipe_fd);
     if (input_fd != STDIN_FILENO)
@@ -148,30 +163,87 @@ int main()
     char commandStr[MAX_LINE] = {0};
     setenv("PATH", "bin:.", 1);
     init_numbered_pipes();
-    do
+    /* ================ HW2 ================ */
+    int msg_fd = -1;
+    char *msg_fd_str = getenv("MESSAGE_FD");
+    if (msg_fd_str)
     {
-        printf("%% ");
-        fflush(stdout);
-        if (fgets(commandStr, sizeof(commandStr), stdin) == NULL)
-            break;
-        commandStr[strcspn(commandStr, "\n")] = '\0';
-        char *trimmed = commandStr;
-        while (*trimmed == ' ' || *trimmed == '\t')
-            trimmed++;
-        if (*trimmed == '\0')
-            continue;
-        int valid_line = is_valid_command_line(trimmed);
-        if (valid_line)
-            update_num_pipes();
-        int ret = execute_line(commandStr);
-        if (ret == -1)
+        msg_fd = atoi(msg_fd_str);
+        fcntl(msg_fd, F_SETFL, O_NONBLOCK);
+    }
+    fd_set readfds;
+    printf("%% ");
+    fflush(stdout);
+    while (1)
+    {
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        int maxfd = STDIN_FILENO;
+        if (msg_fd != -1)
         {
-            quit_flag = 1;
+            FD_SET(msg_fd, &readfds);
+            if (msg_fd > maxfd)
+                maxfd = msg_fd;
+        }
+        if (select(maxfd + 1, &readfds, NULL, NULL, NULL) < 0)
+        {
+            if (errno == EINTR)
+                continue;
             break;
         }
-        cleanup_zombies();
+        if (FD_ISSET(STDIN_FILENO, &readfds))
+        {
+            if (fgets(commandStr, sizeof(commandStr), stdin) == NULL)
+                break;
+            commandStr[strcspn(commandStr, "\r\n")] = '\0';
 
-    } while (1);
+            char *trimmed = commandStr;
+            while (*trimmed == ' ' || *trimmed == '\t')
+                trimmed++;
+            if (*trimmed == '\0')
+            {
+                update_num_pipes();
+                printf("%% ");
+                fflush(stdout);
+                continue;
+            }
+            int valid_line = is_valid_command_line(trimmed);
+            if (valid_line)
+                update_num_pipes();
+            int ret = execute_line(commandStr);
+            if (ret == -1)
+            {
+                quit_flag = 1;
+                break;
+            }
+            cleanup_zombies();
+            printf("%% ");
+            fflush(stdout);
+        }
+        if (msg_fd != -1 && FD_ISSET(msg_fd, &readfds))
+        {
+            char msg[4096];
+            int n = read(msg_fd, msg, sizeof(msg) - 1);
+            if (n > 0)
+            {
+                msg[n] = '\0';
+                if (n > 0 && msg[n - 1] == '\n')
+                    msg[n - 1] = '\0';
+                printf("\r%s\n%% ", msg);
+                fflush(stdout);
+            }
+            else if (n == 0)
+            {
+                close(msg_fd);
+                msg_fd = -1;
+            }
+            else if (n < 0 && errno != EAGAIN && errno != EINTR)
+            {
+                close(msg_fd);
+                msg_fd = -1;
+            }
+        }
+    }
     if (!quit_flag)
         printf("\n");
     return 0;
