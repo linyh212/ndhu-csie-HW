@@ -18,7 +18,7 @@ int allocate_id(void)
             used[users[i].id] = 1;
     }
     pthread_mutex_unlock(&user_mutex);
-    for (int i = 1; i < MAX_USER; i++)
+    for (int i = 0; i < MAX_USER; i++)
     {
         if (!used[i])
             return i;
@@ -83,8 +83,12 @@ void remove_user(int tcp_fd)
         {
             if (users[i].msg_fd != -1)
                 close(users[i].msg_fd);
-            users[i].tcp_fd = -1;
-            users[i].msg_fd = -1;
+            if (users[i].tcp_fd != -1)
+                close(users[i].tcp_fd);
+            printf("User disconnected: ID=%d, name=%s\n", users[i].id, users[i].name);
+            if (i < user_count - 1)
+                users[i] = users[user_count - 1];
+            user_count--;
             break;
         }
     }
@@ -131,17 +135,16 @@ void handle_local_request(int client_fd)
     {
     case CMD_WHO:
     {
-        pthread_mutex_lock(&user_mutex);
-        for (int i = 0; i < user_count; i++)
+        for (int id = 0; id < MAX_USER; id++)
         {
-            if (users[i].tcp_fd != -1)
+            User *u = find_user_by_id(id);
+            if (u)
             {
                 char line[128];
-                snprintf(line, sizeof(line), "%d\t%s\n", users[i].id, users[i].name);
+                snprintf(line, sizeof(line), "%d\t%s\n", u->id, u->name);
                 strcat(response, line);
             }
         }
-        pthread_mutex_unlock(&user_mutex);
         if (strlen(response) == 0)
             strcpy(response, "No user online.\n");
         break;
@@ -238,13 +241,24 @@ int main()
     listen(listen_fd, 10);
     start_local_server();
     fd_set readfds;
-    int max_fd = (listen_fd > local_fd) ? listen_fd : local_fd;
     printf("Chat Server started on port %d\n", PORT);
     while (1)
     {
         FD_ZERO(&readfds);
         FD_SET(listen_fd, &readfds);
         FD_SET(local_fd, &readfds);
+        int max_fd = (listen_fd > local_fd) ? listen_fd : local_fd;
+        pthread_mutex_lock(&user_mutex);
+        for (int i = 0; i < user_count; i++)
+        {
+            if (users[i].tcp_fd != -1)
+            {
+                FD_SET(users[i].tcp_fd, &readfds);
+                if (users[i].tcp_fd > max_fd)
+                    max_fd = users[i].tcp_fd;
+            }
+        }
+        pthread_mutex_unlock(&user_mutex);
         if (select(max_fd + 1, &readfds, NULL, NULL, NULL) < 0)
         {
             if (errno == EINTR)
@@ -330,12 +344,17 @@ int main()
                 char buf[1];
                 int ret = recv(users[i].tcp_fd, buf, 1, MSG_PEEK | MSG_DONTWAIT);
                 if (ret == 0)
+                {
                     disconnected_fds[discon_count++] = users[i].tcp_fd;
+                }
                 else if (ret < 0 && errno != EAGAIN && errno != EINTR)
+                {
                     disconnected_fds[discon_count++] = users[i].tcp_fd;
+                }
             }
         }
         pthread_mutex_unlock(&user_mutex);
+
         for (int i = 0; i < discon_count; i++)
         {
             printf("User disconnected (fd=%d)\n", disconnected_fds[i]);

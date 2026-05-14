@@ -213,6 +213,11 @@ int main()
             int ret = execute_line(commandStr);
             if (ret == -1)
             {
+                if (msg_fd != -1)
+                {
+                    close(msg_fd);
+                    msg_fd = -1;
+                }
                 quit_flag = 1;
                 break;
             }

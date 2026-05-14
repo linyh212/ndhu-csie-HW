@@ -34,8 +34,9 @@ extern NumberedPipe npipes[MAX_NPIPES];
 #define MAX_MSG 1024
 #define MAX_USER 64
 
-typedef struct {int id; char name[MAX_NAME]; int tcp_fd; int msg_fd} User;
-typedef struct {int sender_id; int cmd; char arg1[256]; char arg2[1024]} Request;
+typedef struct {int id; char name[MAX_NAME]; int tcp_fd; int msg_fd;} User;
+
+typedef struct {int sender_id; int cmd; char arg1[256]; char arg2[1024];} Request;
 
 #define CMD_WHO 1
 #define CMD_TELL 2

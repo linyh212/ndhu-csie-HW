@@ -16,7 +16,7 @@ int is_builtin(char **args)
 int exec_builtin(char **args)
 {
     if (strcmp(args[0], "quit") == 0)
-        return -1;
+        exit(0);
     else if (strcmp(args[0], "setenv") == 0)
     {
         if (args[1] == NULL || args[2] == NULL)

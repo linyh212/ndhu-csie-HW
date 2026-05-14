@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
+    if (argc < 2)
     {
         fprintf(stderr, "Usage: yell <message>\n");
         return 1;
@@ -19,7 +19,18 @@ int main(int argc, char *argv[])
     Request req = {0};
     req.cmd = CMD_YELL;
     req.sender_id = atoi(getenv("USER_ID") ? getenv("USER_ID") : "0");
-    strncpy(req.arg1, argv[1], 1023);
+    size_t pos = 0;
+    for (int i = 1; i < argc; i++)
+    {
+        size_t len = strlen(argv[i]);
+        if (pos + len >= sizeof(req.arg1))
+            break;
+        memcpy(req.arg1 + pos, argv[i], len);
+        pos += len;
+        if (i < argc - 1 && pos < sizeof(req.arg1) - 1)
+            req.arg1[pos++] = ' ';
+    }
+    req.arg1[pos] = '\0';
     write(sock, &req, sizeof(req));
     char buf[BUFFER_SIZE];
     int n = read(sock, buf, sizeof(buf) - 1);

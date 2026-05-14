@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc != 3)
+    if (argc < 3)
     {
         fprintf(stderr, "Usage: tell <user_id> <message>\n");
         return 1;
@@ -20,7 +20,19 @@ int main(int argc, char *argv[])
     req.cmd = CMD_TELL;
     req.sender_id = atoi(getenv("USER_ID") ? getenv("USER_ID") : "0");
     strncpy(req.arg1, argv[1], 255);
-    strncpy(req.arg2, argv[2], 1023);
+    req.arg1[255] = '\0';
+    size_t pos = 0;
+    for (int i = 2; i < argc; i++)
+    {
+        size_t len = strlen(argv[i]);
+        if (pos + len >= sizeof(req.arg2))
+            break;
+        memcpy(req.arg2 + pos, argv[i], len);
+        pos += len;
+        if (i < argc - 1 && pos < sizeof(req.arg2) - 1)
+            req.arg2[pos++] = ' ';
+    }
+    req.arg2[pos] = '\0';
     write(sock, &req, sizeof(req));
     char buf[BUFFER_SIZE];
     int n = read(sock, buf, sizeof(buf) - 1);
