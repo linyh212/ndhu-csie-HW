@@ -1,0 +1,4 @@
+working_dir/object/
+working_dir/shell
+*.o
+.DS_Store
