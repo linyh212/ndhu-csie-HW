@@ -1,0 +1,23 @@
+#include <string.h>
+
+int main() {
+  init();
+  char *str = s1;
+  char *key = s2;
+  int count=0;
+  //add your code here
+  for(int i=0; i<=strlen(str)-strlen(key); i++){
+    int flag=0;
+    for(int j=0; j<strlen(key); j++){
+  		if(str[i+j]!=key[j]){
+        	flag=1;
+          break;
+        }
+    }
+    if(!flag){
+    	count++;
+    }    
+  }
+  printf("%d", count);
+  return 0;
+}
