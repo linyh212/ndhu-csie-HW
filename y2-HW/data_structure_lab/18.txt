@@ -1,0 +1,552 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <float.h>
+#include <math.h>
+
+#define HEAP_CAPACITY 1000
+
+/* Byte-wise swap two items of size SIZE. */
+#define SWAP(a, b, size)             \
+	do                               \
+	{                                \
+		size_t __size = (size);      \
+		char *__a = (a), *__b = (b); \
+		do                           \
+		{                            \
+			char __tmp = *__a;       \
+			*__a++ = *__b;           \
+			*__b++ = __tmp;          \
+		} while (--__size > 0);      \
+	} while (0)
+
+typedef int (*_CoreCrtNonSecureSearchSortCompareFunction)(const void *, const void *);
+
+typedef struct Heap
+{
+	void *data;
+	size_t size;
+	size_t _SizeOfElements;
+	_CoreCrtNonSecureSearchSortCompareFunction _CompareFunction;
+} Heap;
+
+void heap_init(Heap *heap, size_t _SizeOfElements, _CoreCrtNonSecureSearchSortCompareFunction _CompareFunction)
+{
+	heap->_SizeOfElements = _SizeOfElements;
+	heap->_CompareFunction = _CompareFunction;
+	heap->data = malloc(_SizeOfElements * HEAP_CAPACITY);
+	heap->size = 0;
+}
+
+void heap_push(Heap *heap, const void *element)
+{
+	int idx = heap->size++;
+	char *idx_ptr = (char *)heap->data + idx * heap->_SizeOfElements;
+	memcpy(idx_ptr, element, heap->_SizeOfElements);
+	while (idx)
+	{
+		int par = (idx - 1) >> 1;
+		char *idx_ptr = (char *)heap->data + idx * heap->_SizeOfElements;
+		char *par_ptr = (char *)heap->data + par * heap->_SizeOfElements;
+		if (heap->_CompareFunction(idx_ptr, par_ptr) <= 0)
+		{
+			break;
+		}
+		SWAP(idx_ptr, par_ptr, heap->_SizeOfElements);
+		idx = par;
+	}
+}
+
+void *heap_top(Heap *heap)
+{
+	return heap->data;
+}
+
+void heap_pop(Heap *heap)
+{
+	int idx = --heap->size;
+	char *idx_ptr = (char *)heap->data + idx * heap->_SizeOfElements;
+	memcpy(heap->data, idx_ptr, heap->_SizeOfElements);
+	idx = 0;
+	while (idx < heap->size)
+	{
+		int ch = idx;
+		char *idx_ptr = (char *)heap->data + idx * heap->_SizeOfElements;
+		char *ch_ptr = idx_ptr;
+		char *l_ptr = (char *)heap->data + (idx * 2 + 1) * heap->_SizeOfElements;
+		char *r_ptr = (char *)heap->data + (idx * 2 + 2) * heap->_SizeOfElements;
+		if (idx * 2 + 1 < heap->size && heap->_CompareFunction(l_ptr, ch_ptr) > 0)
+		{
+			ch = idx * 2 + 1;
+			ch_ptr = l_ptr;
+		}
+		if (idx * 2 + 2 < heap->size && heap->_CompareFunction(r_ptr, ch_ptr) > 0)
+		{
+			ch = idx * 2 + 2;
+			ch_ptr = r_ptr;
+		}
+		if (ch == idx)
+			break;
+		SWAP(idx_ptr, ch_ptr, heap->_SizeOfElements);
+		idx = ch;
+	}
+}
+
+#define MAX_ENTRIES 16	// maxinum number of data item each node can hold.
+#define MAX_NAME_LEN 50 // maxinum number of character for item name
+
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
+typedef struct DataItem
+{
+	double latitude, longitude;
+	char name[MAX_NAME_LEN];
+} DataItem;
+
+typedef struct SearchResult
+{
+	DataItem item;
+	double distance;
+} SearchResult;
+
+typedef struct BoundingBox
+{
+	double minX, minY;
+	double maxX, maxY;
+} BoundingBox;
+
+typedef struct RTreeNode
+{
+	int isLeaf;		 // 是否為葉節點is leaf or not
+	int count;		 // number of node
+	BoundingBox mbr; // minimum bounding rectangle
+	struct RTreeNode *children[MAX_ENTRIES + 1];
+	DataItem data[MAX_ENTRIES + 1]; //
+} RTreeNode;
+
+typedef struct SearchNode
+{
+	RTreeNode *node;
+	double distance;
+} SearchNode;
+
+double getArea(BoundingBox b)
+{
+	return (b.maxX - b.minX) * (b.maxY - b.minY);
+}
+
+BoundingBox combine_i(BoundingBox a, DataItem b)
+{
+	return (BoundingBox){
+		min(a.minX, b.latitude),
+		min(a.minY, b.longitude),
+		max(a.maxX, b.latitude),
+		max(a.maxY, b.longitude)};
+}
+
+BoundingBox combine_b(BoundingBox a, BoundingBox b)
+{
+	return (BoundingBox){
+		min(a.minX, b.minX),
+		min(a.minY, b.minY),
+		max(a.maxX, b.maxX),
+		max(a.maxY, b.maxY)};
+}
+
+// compare functions
+int cmp_x_i(const void *a, const void *b)
+{
+	return ((DataItem *)a)->latitude > ((DataItem *)b)->latitude;
+}
+int cmp_y_i(const void *a, const void *b)
+{
+	return ((DataItem *)a)->longitude > ((DataItem *)b)->longitude;
+}
+int cmp_x_n(const void *a, const void *b)
+{
+	return (*(RTreeNode **)a)->mbr.minX > (*(RTreeNode **)b)->mbr.minX;
+}
+int cmp_y_n(const void *a, const void *b)
+{
+	return (*(RTreeNode **)a)->mbr.minY > (*(RTreeNode **)b)->mbr.minY;
+}
+int cmp_res_i(const void *a, const void *b)
+{
+	return ((SearchResult *)a)->distance > ((SearchResult *)b)->distance;
+}
+int cmp_res_n(const void *a, const void *b)
+{
+	return ((SearchNode *)a)->distance < ((SearchNode *)b)->distance;
+}
+
+RTreeNode *insert_re(RTreeNode **root_ptr, DataItem item)
+{
+	RTreeNode *root = *root_ptr;
+	if (!root)
+	{
+		root = (RTreeNode *)malloc(sizeof(RTreeNode));
+		root->isLeaf = 1;
+		root->count = 1;
+		root->mbr = (BoundingBox){item.latitude, item.longitude, item.latitude, item.longitude};
+		root->data[0] = item;
+
+		*root_ptr = root;
+		return NULL;
+	}
+	root->mbr = combine_i(root->mbr, item);
+	if (root->isLeaf)
+	{
+		root->data[root->count++] = item;
+		if (root->count <= MAX_ENTRIES)
+			return NULL;
+
+		// split
+		double max_diff = -DBL_MAX;
+		char axia;
+		int split_position;
+		DataItem data_x[MAX_ENTRIES + 1];
+		DataItem data_y[MAX_ENTRIES + 1];
+		const int l = ceil(MAX_ENTRIES * 0.4);
+		const int r = MAX_ENTRIES + 1 - ceil(MAX_ENTRIES * 0.4);
+
+		// split x
+		memcpy(data_x, root->data, sizeof(data_x));
+		qsort(data_x, MAX_ENTRIES + 1, sizeof(DataItem), cmp_x_i);
+		BoundingBox mbr_x_l[MAX_ENTRIES + 1];
+		BoundingBox mbr_x_r[MAX_ENTRIES + 1];
+		mbr_x_l[0].minX = mbr_x_l[0].maxX = data_x[0].latitude;
+		mbr_x_l[0].minY = mbr_x_l[0].maxY = data_x[0].longitude;
+		mbr_x_r[MAX_ENTRIES].minX = mbr_x_r[MAX_ENTRIES].maxX = data_x[MAX_ENTRIES].latitude;
+		mbr_x_r[MAX_ENTRIES].minY = mbr_x_r[MAX_ENTRIES].maxY = data_x[MAX_ENTRIES].longitude;
+		for (int i = 1; i < r; i++)
+		{
+			mbr_x_l[i] = combine_i(mbr_x_l[i - 1], data_x[i]);
+		}
+		for (int i = MAX_ENTRIES - 1; i >= l; i--)
+		{
+			mbr_x_r[i] = combine_i(mbr_x_r[i + 1], data_x[i]);
+		}
+		for (int i = l; i <= r; i++)
+		{
+			BoundingBox mbr = combine_b(mbr_x_l[i - 1], mbr_x_r[i]);
+			double diff = getArea(mbr) - getArea(mbr_x_l[i - 1]) - getArea(mbr_x_r[i]);
+			if (max_diff < diff)
+			{
+				max_diff = diff;
+				axia = 'x';
+				split_position = i;
+			}
+		}
+
+		// split y
+		memcpy(data_y, root->data, sizeof(data_y));
+		qsort(data_y, MAX_ENTRIES + 1, sizeof(DataItem), cmp_y_i);
+		BoundingBox mbr_y_l[MAX_ENTRIES + 1];
+		BoundingBox mbr_y_r[MAX_ENTRIES + 1];
+		mbr_y_l[0].minX = mbr_y_l[0].maxX = data_y[0].latitude;
+		mbr_y_l[0].minY = mbr_y_l[0].maxY = data_y[0].longitude;
+		mbr_y_r[MAX_ENTRIES].minX = mbr_y_r[MAX_ENTRIES].maxX = data_y[MAX_ENTRIES].latitude;
+		mbr_y_r[MAX_ENTRIES].minY = mbr_y_r[MAX_ENTRIES].maxY = data_y[MAX_ENTRIES].longitude;
+		for (int i = 1; i < r; i++)
+		{
+			mbr_y_l[i] = combine_i(mbr_y_l[i - 1], data_y[i]);
+		}
+		for (int i = MAX_ENTRIES - 1; i >= l; i--)
+		{
+			mbr_y_r[i] = combine_i(mbr_y_r[i + 1], data_y[i]);
+		}
+		for (int i = l; i <= r; i++)
+		{
+			BoundingBox mbr = combine_b(mbr_y_l[i - 1], mbr_y_r[i]);
+			int diff = getArea(mbr) - getArea(mbr_y_l[i - 1]) - getArea(mbr_y_r[i]);
+			if (max_diff < diff)
+			{
+				max_diff = diff;
+				axia = 'y';
+				split_position = i;
+			}
+		}
+
+		// update
+		RTreeNode *new_l = (RTreeNode *)malloc(sizeof(RTreeNode));
+		RTreeNode *new_r = (RTreeNode *)malloc(sizeof(RTreeNode));
+		new_l->isLeaf = 1;
+		new_r->isLeaf = 1;
+		new_l->count = split_position;
+		new_r->count = MAX_ENTRIES + 1 - new_l->count;
+		if (axia == 'x')
+		{
+			new_l->mbr = mbr_x_l[split_position - 1];
+			new_r->mbr = mbr_x_r[split_position];
+			memcpy(new_l->data, data_x, sizeof(DataItem) * new_l->count);
+			memcpy(new_r->data, data_x + new_l->count, sizeof(DataItem) * new_r->count);
+		}
+		else
+		{
+			new_l->mbr = mbr_y_l[split_position - 1];
+			new_r->mbr = mbr_y_r[split_position];
+			memcpy(new_l->data, data_y, sizeof(DataItem) * new_l->count);
+			memcpy(new_r->data, data_y + new_l->count, sizeof(DataItem) * new_r->count);
+		}
+
+		free(root);
+		*root_ptr = new_l;
+		return new_r;
+	}
+	else // not root->isLeaf
+	{
+		double min_diff = DBL_MAX;
+		int seleted_child = -1;
+		for (int i = 0; i < root->count; i++)
+		{
+			double diff = getArea(combine_i(root->children[i]->mbr, item)) - getArea(root->children[i]->mbr);
+			if (min_diff > diff)
+			{
+				min_diff = diff;
+				seleted_child = i;
+			}
+		}
+		RTreeNode *split_node = insert_re(&root->children[seleted_child], item);
+		if (!split_node)
+			return NULL;
+		root->children[root->count++] = split_node;
+		if (root->count <= MAX_ENTRIES)
+			return NULL;
+
+		// split
+		double max_diff = -DBL_MAX;
+		char axia;
+		int split_position;
+		RTreeNode *data_x[MAX_ENTRIES + 1];
+		RTreeNode *data_y[MAX_ENTRIES + 1];
+		const int l = ceil(MAX_ENTRIES * 0.4);
+		const int r = MAX_ENTRIES + 1 - ceil(MAX_ENTRIES * 0.4);
+
+		// split x
+		memcpy(data_x, root->children, sizeof(data_x));
+		qsort(data_x, MAX_ENTRIES + 1, sizeof(RTreeNode *), cmp_x_n);
+		BoundingBox mbr_x_l[MAX_ENTRIES + 1];
+		BoundingBox mbr_x_r[MAX_ENTRIES + 1];
+		mbr_x_l[0] = data_x[0]->mbr;
+		mbr_x_r[MAX_ENTRIES] = data_x[MAX_ENTRIES]->mbr;
+		for (int i = 1; i < r; i++)
+		{
+			mbr_x_l[i] = combine_b(mbr_x_l[i - 1], data_x[i]->mbr);
+		}
+		for (int i = MAX_ENTRIES - 1; i >= l; i--)
+		{
+			mbr_x_r[i] = combine_b(mbr_x_r[i + 1], data_x[i]->mbr);
+		}
+		for (int i = l; i <= r; i++)
+		{
+			BoundingBox mbr = combine_b(mbr_x_l[i - 1], mbr_x_r[i]);
+			double diff = getArea(mbr) - getArea(mbr_x_l[i - 1]) - getArea(mbr_x_r[i]);
+			if (max_diff < diff)
+			{
+				max_diff = diff;
+				axia = 'x';
+				split_position = i;
+			}
+		}
+
+		// split y
+		memcpy(data_y, root->children, sizeof(data_y));
+		qsort(data_y, MAX_ENTRIES + 1, sizeof(RTreeNode *), cmp_y_n);
+		BoundingBox mbr_y_l[MAX_ENTRIES + 1];
+		BoundingBox mbr_y_r[MAX_ENTRIES + 1];
+		mbr_y_l[0] = data_y[0]->mbr;
+		mbr_y_r[MAX_ENTRIES] = data_y[MAX_ENTRIES]->mbr;
+		for (int i = 1; i < r; i++)
+		{
+			mbr_y_l[i] = combine_b(mbr_y_l[i - 1], data_y[i]->mbr);
+		}
+		for (int i = MAX_ENTRIES - 1; i >= l; i--)
+		{
+			mbr_y_r[i] = combine_b(mbr_y_r[i + 1], data_y[i]->mbr);
+		}
+		for (int i = l; i <= r; i++)
+		{
+			BoundingBox mbr = combine_b(mbr_y_l[i - 1], mbr_y_r[i]);
+			int diff = getArea(mbr) - getArea(mbr_y_l[i - 1]) - getArea(mbr_y_r[i]);
+			if (max_diff < diff)
+			{
+				max_diff = diff;
+				axia = 'y';
+				split_position = i;
+			}
+		}
+
+		// update
+		RTreeNode *new_l = (RTreeNode *)malloc(sizeof(RTreeNode));
+		RTreeNode *new_r = (RTreeNode *)malloc(sizeof(RTreeNode));
+		new_l->isLeaf = 0;
+		new_r->isLeaf = 0;
+		new_l->count = split_position;
+		new_r->count = MAX_ENTRIES + 1 - new_l->count;
+		if (axia == 'x')
+		{
+			new_l->mbr = mbr_x_l[split_position - 1];
+			new_r->mbr = mbr_x_r[split_position];
+			memcpy(new_l->children, data_x, sizeof(RTreeNode *) * new_l->count);
+			memcpy(new_r->children, data_x + new_l->count, sizeof(RTreeNode *) * new_r->count);
+		}
+		else // axia == 'y'
+		{
+			new_l->mbr = mbr_y_l[split_position - 1];
+			new_r->mbr = mbr_y_r[split_position];
+			memcpy(new_l->children, data_y, sizeof(RTreeNode *) * new_l->count);
+			memcpy(new_r->children, data_y + new_l->count, sizeof(RTreeNode *) * new_r->count);
+		}
+
+		free(root);
+		*root_ptr = new_l;
+		return new_r;
+	}
+}
+
+SearchNode getSearchNode(RTreeNode *root, double latitude, double longitude)
+{
+	double dx = 0, dy = 0;
+	if (root->mbr.minX > latitude)
+		dx = root->mbr.minX - latitude;
+	else if (latitude > root->mbr.maxX)
+		dx = latitude - root->mbr.maxX;
+	if (root->mbr.minY > longitude)
+		dy = root->mbr.minY - longitude;
+	else if (longitude > root->mbr.maxY)
+		dy = longitude - root->mbr.maxY;
+	SearchNode result;
+	result.node = root;
+	result.distance = sqrt(dx * dx + dy * dy);
+	return result;
+}
+
+SearchResult getSearchResult(DataItem item, double latitude, double longitude)
+{
+	double dx = item.latitude - latitude, dy = item.longitude - longitude;
+	SearchResult result;
+	result.item = item;
+	result.distance = sqrt(dx * dx + dy * dy);
+	return result;
+}
+
+// insert data
+void insert(RTreeNode **root, DataItem item)
+{
+	RTreeNode *split_node = insert_re(root, item);
+	if (!split_node)
+		return;
+	RTreeNode *new_root = (RTreeNode *)malloc(sizeof(RTreeNode));
+	new_root->isLeaf = 0;
+	new_root->count = 2;
+	new_root->mbr = combine_b((*root)->mbr, split_node->mbr);
+	new_root->children[0] = *root;
+	new_root->children[1] = split_node;
+	*root = new_root;
+}
+
+// search data
+SearchResult *search(RTreeNode *root, double latitude, double longitude, int *n)
+{
+	Heap heap_n, heap_i;
+	heap_init(&heap_n, sizeof(SearchNode), cmp_res_n);
+	heap_init(&heap_i, sizeof(SearchResult), cmp_res_i);
+
+	heap_push(&heap_n, &root);
+	while (heap_n.size > 0)
+	{
+		RTreeNode *node = *(RTreeNode **)heap_top(&heap_n);
+		heap_pop(&heap_n);
+		if (node->isLeaf)
+		{
+			for (int i = 0; i < node->count; i++)
+			{
+				SearchResult result = getSearchResult(node->data[i], latitude, longitude);
+				heap_push(&heap_i, &result);
+				if (heap_i.size > *n)
+					heap_pop(&heap_i);
+			}
+		}
+		else
+		{
+			for (int i = 0; i < node->count; i++)
+			{
+				SearchNode result = getSearchNode(node->children[i], latitude, longitude);
+				heap_push(&heap_n, &result);
+			}
+		}
+	}
+
+	*n = heap_i.size;
+	SearchResult *result = malloc(sizeof(SearchResult) * *n);
+	for (int i = *n - 1; i >= 0; i--)
+	{
+		result[i] = *(SearchResult *)heap_top(&heap_i);
+		heap_pop(&heap_i);
+	}
+	return result;
+}
+
+// print tree
+void printTree(RTreeNode *root, int depth)
+{
+	for (int i = 0; i < depth; i++)
+		printf("  ");
+	printf("Node (count=%d, isLeaf=%d):\n", root->count, root->isLeaf);
+	for (int i = 0; i < root->count; i++)
+	{
+		if (root->isLeaf)
+		{
+			for (int j = 0; j < depth + 1; j++)
+				printf("  ");
+			printf("Data: %s (%.2f, %.2f)\n", root->data[i].name, root->data[i].latitude, root->data[i].longitude);
+		}
+		else
+		{
+			printTree(root->children[i], depth + 1);
+		}
+	}
+}
+
+int main()
+{
+	RTreeNode *root = NULL;
+	DataItem item;
+	double latitude, longitude;
+	SearchResult *results;
+
+	char command[50];
+
+	while (scanf("%s", command) != EOF)
+	{
+		if (strcmp("insert", command) == 0)
+		{
+			scanf("%lf%lf%s", &item.latitude, &item.longitude, item.name);
+			insert(&root, item);
+		}
+		else if (strcmp("print", command) == 0)
+		{
+			printTree(root, 0);
+		}
+		else if (strcmp("exit", command) == 0)
+		{
+			break;
+		}
+		else if (strcmp("search", command) == 0)
+		{
+			scanf("%lf%lf", &latitude, &longitude);
+			int amount = 2; // TODO: 所以要印幾個結果
+			results = search(root, latitude, longitude, &amount);
+			for (int i = 0; i < amount; i++)
+			{
+				printf("%s (%.2f, %.2f) - Distance: %.2f\n", results[i].item.name, results[i].item.latitude, results[i].item.longitude, results[i].distance);
+			}
+		}
+		else
+		{
+			printf("Unknow command.\n");
+		}
+	}
+	return 0;
+}
