@@ -8,6 +8,15 @@ static const char *basename_cmd(char *cmd)
     return base ? base + 1 : cmd;
 }
 
+static void trim_whitespace(char *s)
+{
+    if (!s)
+        return;
+    size_t len = strlen(s);
+    while (len > 0 && (s[len - 1] == '\n' || s[len - 1] == '\r' || s[len - 1] == ' ' || s[len - 1] == '\t'))
+        s[--len] = '\0';
+}
+
 static int connect_local_socket(void)
 {
     int sock = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -100,6 +109,7 @@ int exec_builtin(char **args)
 
         Request req = {0};
         req.cmd = CMD_LOGIN;
+        req.sender_id = atoi(getenv("USER_ID") ? getenv("USER_ID") : "0");
         strcpy(req.arg1, username);
         strcpy(req.arg2, password);
         write(sock, &req, sizeof(req));
@@ -110,6 +120,7 @@ int exec_builtin(char **args)
         if (n > 0)
         {
             response[n] = '\0';
+            trim_whitespace(response);
             if (strcmp(response, "OK") == 0)
             {
                 setenv("USER_NAME", username, 1);
@@ -147,13 +158,14 @@ int exec_builtin(char **args)
 
         Request req = {0};
         req.cmd = CMD_LOGOUT;
+        req.sender_id = atoi(getenv("USER_ID") ? getenv("USER_ID") : "0");
         strcpy(req.arg1, username);
         write(sock, &req, sizeof(req));
         close(sock);
 
         unsetenv("USER_NAME");
         printf("Logged out successfully!\n");
-        return 0;
+        return -2;
     }
     return 0;
 }

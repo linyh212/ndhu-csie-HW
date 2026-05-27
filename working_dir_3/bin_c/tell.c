@@ -19,7 +19,8 @@ int main(int argc, char *argv[])
     Request req = {0};
     req.cmd = CMD_TELL;
     req.sender_id = atoi(getenv("USER_ID") ? getenv("USER_ID") : "0");
-    strncpy(req.arg1, argv[1], 255);
+    strcpy(req.arg1, argv[1]);
+    strcpy(req.arg2, argv[2]);
     req.arg1[255] = '\0';
     size_t pos = 0;
     for (int i = 2; i < argc; i++)

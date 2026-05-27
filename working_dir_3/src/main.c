@@ -1,5 +1,14 @@
 #include "shell.h"
 
+static void trim_whitespace(char *s)
+{
+    if (!s)
+        return;
+    size_t len = strlen(s);
+    while (len > 0 && (s[len - 1] == '\n' || s[len - 1] == '\r' || s[len - 1] == ' ' || s[len - 1] == '\t'))
+        s[--len] = '\0';
+}
+
 static int should_read_from_numbered_pipe(char *cmd)
 {
     for (int i = 0; i < MAX_NPIPES; i++)
@@ -156,6 +165,8 @@ int execute_line(char *line)
 
 int main()
 {
+login_again:
+    ;
     int quit_flag = 0;
     char commandStr[MAX_LINE] = {0};
     setenv("PATH", "bin:.", 1);
@@ -197,6 +208,7 @@ int main()
         }
         Request req = {0};
         req.cmd = CMD_LOGIN;
+        req.sender_id = atoi(getenv("USER_ID") ? getenv("USER_ID") : "0");
         strcpy(req.arg1, username);
         strcpy(req.arg2, password);
         write(sock, &req, sizeof(req));
@@ -247,14 +259,18 @@ int main()
                     write(sock, &req, sizeof(req));
                     n = read(sock, response, sizeof(response) - 1);
                     close(sock);
-                    if (n > 0 && strcmp(response, "OK") == 0)
+                    if (n > 0)
                     {
-                        printf("Create success !\n");
-                        printf("Please login again.\n");
-                        continue;
+                        response[n] = '\0';
+                        trim_whitespace(response);
+                        if (strcmp(response, "OK") == 0)
+                        {
+                            printf("Create success !\n");
+                            printf("Please login again.\n");
+                            continue;
+                        }
                     }
-                    else
-                        printf("Register failed!\n");
+                    printf("Register failed!\n");
                 }
             }
         }
@@ -319,6 +335,12 @@ int main()
                 }
                 quit_flag = 1;
                 break;
+            }
+            if (ret == -2)
+            {
+                unsetenv("USER_NAME");
+                close_all_numbered_pipes();
+                goto login_again;
             }
             cleanup_zombies();
             printf("%% ");

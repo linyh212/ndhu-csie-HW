@@ -46,7 +46,7 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
 # server（require MySQL）
-server: bin_c/server.c
+server: server.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 # HW2

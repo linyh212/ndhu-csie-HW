@@ -86,4 +86,16 @@ void handle_local_request(int client_fd);
 void start_local_server(void);
 void sigchld_handler(int sig);
 
+/* ================ HW3 ================ */
+int group_exists(const char *group_name);
+int is_group_owner(const char *group_name, const char *owner);
+int is_member_of_group(const char *group_name, const char *username);
+int create_group(const char *group_name, const char *owner);
+int delete_group(const char *group_name, const char *owner);
+int add_to_group(const char *group_name, const char *owner, const char *username);
+int leave_group(const char *group_name, const char *username);
+char *list_groups(const char *username);
+int remove_from_group(const char *group_name, const char *owner, const char *username);
+void gyell_to_group(const char *group_name, const char *sender, const char *msg);
+
 #endif
