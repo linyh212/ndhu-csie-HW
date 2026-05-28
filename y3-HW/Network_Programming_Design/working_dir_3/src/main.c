@@ -163,6 +163,15 @@ int execute_line(char *line)
     return ret;
 }
 
+void print_prompt(void) {
+    char *user = getenv("USER_NAME");
+    if (user && strlen(user) > 0)
+        printf("(%s)%% ", user);
+    else
+        printf("%% ");
+    fflush(stdout);
+}
+
 int main()
 {
 login_again:
@@ -180,16 +189,12 @@ login_again:
         printf("Login: ");
         fflush(stdout);
         if (fgets(username, sizeof(username), stdin) == NULL)
-        {
             return 0;
-        }
         username[strcspn(username, "\r\n")] = '\0';
         printf("Password: ");
         fflush(stdout);
         if (fgets(password, sizeof(password), stdin) == NULL)
-        {
             return 0;
-        }
         password[strcspn(password, "\r\n")] = '\0';
         int sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if (sock < 0)
@@ -275,9 +280,6 @@ login_again:
             }
         }
     }
-    
-    setenv("PATH", "bin:.", 1);
-    init_numbered_pipes();
     /* ================ HW2 ================ */
     int msg_fd = -1;
     char *msg_fd_str = getenv("MESSAGE_FD");
@@ -287,7 +289,7 @@ login_again:
         fcntl(msg_fd, F_SETFL, O_NONBLOCK);
     }
     fd_set readfds;
-    printf("%% ");
+    print_prompt();
     fflush(stdout);
     while (1)
     {
@@ -318,7 +320,7 @@ login_again:
             if (*trimmed == '\0')
             {
                 update_num_pipes();
-                printf("%% ");
+                print_prompt();
                 fflush(stdout);
                 continue;
             }
@@ -343,8 +345,7 @@ login_again:
                 goto login_again;
             }
             cleanup_zombies();
-            printf("%% ");
-            fflush(stdout);
+            print_prompt();
         }
         if (msg_fd != -1 && FD_ISSET(msg_fd, &readfds))
         {
@@ -355,8 +356,8 @@ login_again:
                 msg[n] = '\0';
                 if (n > 0 && msg[n - 1] == '\n')
                     msg[n - 1] = '\0';
-                printf("\r%s\n%% ", msg);
-                fflush(stdout);
+                printf("\r%s\n", msg);
+                print_prompt();
             }
             else if (n == 0)
             {
