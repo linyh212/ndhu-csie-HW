@@ -16,7 +16,13 @@
 #define MAX_CMDS 64
 #define MAX_NPIPES 128
 
-typedef struct {int read_fd; int write_fd; int remain; int used;} NumberedPipe;
+typedef struct
+{
+    int read_fd;
+    int write_fd;
+    int remain;
+    int used;
+} NumberedPipe;
 extern NumberedPipe npipes[MAX_NPIPES];
 
 /* ================ HW2 ================ */
@@ -34,9 +40,22 @@ extern NumberedPipe npipes[MAX_NPIPES];
 #define MAX_MSG 1024
 #define MAX_USER 64
 
-typedef struct {int id; char name[MAX_NAME]; int tcp_fd; int msg_fd;} User;
+typedef struct
+{
+    int id;
+    char name[MAX_NAME];
+    int tcp_fd;
+    int msg_fd;
+} User;
 
-typedef struct {int sender_id; int cmd; char arg1[256]; char arg2[1024]; char arg3[256];} Request;
+typedef struct
+{
+    int sender_id;
+    int cmd;
+    char arg1[256];
+    char arg2[1024];
+    char arg3[256];
+} Request;
 
 #define CMD_WHO 1
 #define CMD_TELL 2
@@ -73,12 +92,14 @@ int parse_commands(char *line, char *commands[]);
 int parse_args(char *cmd_str, char *args[]);
 int execute_pipeline(char **commands, int cmd_count, int input_fd, int numbered_output_fd);
 void cleanup_zombies(void);
+void print_prompt(void);
 
 /* ================ HW2 ================ */
 int allocate_id(void);
-User* find_user_by_id(int id);
-User* find_user_by_name(const char *name);
+User *find_user_by_id(int id);
+User *find_user_by_name(const char *name);
 void add_user(int tcp_fd, int msg_fd, int id, const char *name);
+void update_user_name(int msg_fd, const char *new_name);
 void remove_user(int tcp_fd);
 void send_to_user(int target_id, const char *msg);
 void yell_to_all(const char *msg, int sender_id);
@@ -87,6 +108,13 @@ void start_local_server(void);
 void sigchld_handler(int sig);
 
 /* ================ HW3 ================ */
+void init_db(void);
+int user_exists(const char *username);
+int verify_password(const char *username, const char *password);
+int register_user(const char *username, const char *password);
+int add_mail(const char *to, const char *from, const char *content);
+char *list_mails(const char *username);
+int delete_mail(int mail_id, const char *username);
 int group_exists(const char *group_name);
 int is_group_owner(const char *group_name, const char *owner);
 int is_member_of_group(const char *group_name, const char *username);
