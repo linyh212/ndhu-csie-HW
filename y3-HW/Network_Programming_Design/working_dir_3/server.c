@@ -135,14 +135,17 @@ char *list_mails(const char *username)
         pthread_mutex_unlock(&db_mutex);
         return strdup("empty !\n");
     }
-    char *result = malloc(4096);
+    char *result = malloc(8192);
     result[0] = '\0';
     MYSQL_ROW row;
+    int seq = 1;
     while ((row = mysql_fetch_row(res)))
     {
-        char line[256];
-        snprintf(line, sizeof(line), "ID:%s From:%s Content:%s Time:%s\n", row[0], row[1], row[2], row[3]);
+        char line[512];
+        /* Show sequential ID starting from 1 instead of DB id */
+        snprintf(line, sizeof(line), "ID:%d From:%s Content:%s Time:%s\n", seq, row[1], row[2], row[3]);
         strcat(result, line);
+        seq++;
     }
     mysql_free_result(res);
     pthread_mutex_unlock(&db_mutex);
@@ -528,9 +531,32 @@ void gyell_to_group(const char *group_name, const char *sender, const char *msg)
 
 int delete_mail(int mail_id, const char *username)
 {
+    /* Treat mail_id as 1-based index in the user's mailbox (ordered by sent_time).
+       Find the actual DB id at that position, then delete that row. */
+    if (mail_id <= 0)
+        return 0;
     char q[256];
-    snprintf(q, sizeof(q), "DELETE FROM mails WHERE id=%d AND to_user='%s'", mail_id, username);
+    /* Find the DB id for the given index (offset = mail_id - 1) */
+    snprintf(q, sizeof(q), "SELECT id FROM mails WHERE to_user='%s' ORDER BY sent_time LIMIT 1 OFFSET %d", username, mail_id - 1);
     pthread_mutex_lock(&db_mutex);
+    if (mysql_query(db_conn, q))
+    {
+        pthread_mutex_unlock(&db_mutex);
+        return 0;
+    }
+    MYSQL_RES *res = mysql_store_result(db_conn);
+    if (!res || mysql_num_rows(res) == 0)
+    {
+        if (res)
+            mysql_free_result(res);
+        pthread_mutex_unlock(&db_mutex);
+        return 0;
+    }
+    MYSQL_ROW row = mysql_fetch_row(res);
+    int real_id = atoi(row[0]);
+    mysql_free_result(res);
+
+    snprintf(q, sizeof(q), "DELETE FROM mails WHERE id=%d AND to_user='%s'", real_id, username);
     int ret = mysql_query(db_conn, q);
     int affected = mysql_affected_rows(db_conn);
     pthread_mutex_unlock(&db_mutex);
