@@ -25,11 +25,47 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    char message[1024] = {0};
+    if (strcmp(argv[2], "<") == 0)
+    {
+        if (argc > 3)
+        {
+            char command[512] = {0};
+            for (int i = 3; i < argc; i++)
+            {
+                if (i > 3)
+                    strncat(command, " ", sizeof(command) - strlen(command) - 1);
+                strncat(command, argv[i], sizeof(command) - strlen(command) - 1);
+            }
+            FILE *fp = popen(command, "r");
+            if (fp)
+            {
+                size_t len = fread(message, 1, sizeof(message) - 1, fp);
+                message[len] = '\0';
+                pclose(fp);
+            }
+        }
+        else
+        {
+            size_t len = fread(message, 1, sizeof(message) - 1, stdin);
+            message[len] = '\0';
+        }
+    }
+    else
+    {
+        for (int i = 2; i < argc; i++)
+        {
+            if (i > 2)
+                strncat(message, " ", sizeof(message) - strlen(message) - 1);
+            strncat(message, argv[i], sizeof(message) - strlen(message) - 1);
+        }
+    }
+
     Request req = {0};
     req.cmd = CMD_MAILTO;
-    strcpy(req.arg1, argv[1]);  // to
-    strcpy(req.arg2, argv[2]);  // message
-    strcpy(req.arg3, username); // from
+    strcpy(req.arg1, argv[1]);   // to
+    strcpy(req.arg2, message);   // message
+    strcpy(req.arg3, username);  // from
 
     write(sock, &req, sizeof(req));
 

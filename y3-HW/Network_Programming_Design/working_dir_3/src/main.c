@@ -9,6 +9,28 @@ static void trim_whitespace(char *s)
         s[--len] = '\0';
 }
 
+static int read_secret(char *buf, size_t size)
+{
+    struct termios oldt;
+    int hide_echo = (isatty(STDIN_FILENO) && tcgetattr(STDIN_FILENO, &oldt) == 0);
+    if (hide_echo)
+    {
+        struct termios newt = oldt;
+        newt.c_lflag &= ~ECHO;
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &newt);
+    }
+    char *ret = fgets(buf, size, stdin);
+    if (hide_echo)
+    {
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &oldt);
+        printf("\n");
+    }
+    if (ret == NULL)
+        return 0;
+    buf[strcspn(buf, "\r\n")] = '\0';
+    return 1;
+}
+
 static int should_read_from_numbered_pipe(char *cmd)
 {
     for (int i = 0; i < MAX_NPIPES; i++)
@@ -193,9 +215,8 @@ login_again:
         username[strcspn(username, "\r\n")] = '\0';
         printf("Password: ");
         fflush(stdout);
-        if (fgets(password, sizeof(password), stdin) == NULL)
+        if (!read_secret(password, sizeof(password)))
             return 0;
-        password[strcspn(password, "\r\n")] = '\0';
         int sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if (sock < 0)
         {
@@ -234,48 +255,55 @@ login_again:
                 printf("Password error !\n");
             else if (strcmp(response, "USER_NOT_FOUND") == 0)
             {
-                printf("User not found !\n");
-                printf("Create new account? (y/n): ");
+                printf("User not found ! Create account or login again ? <1/2> :");
                 fflush(stdout);
                 char choice[10];
                 fgets(choice, sizeof(choice), stdin);
-                if (choice[0] == 'y' || choice[0] == 'Y')
+                if (choice[0] == '1')
                 {
-                    printf("your user name: ");
-                    fflush(stdout);
-                    fgets(username, sizeof(username), stdin);
-                    username[strcspn(username, "\r\n")] = '\0';
-
-                    printf("your password: ");
-                    fflush(stdout);
-                    fgets(password, sizeof(password), stdin);
-                    password[strcspn(password, "\r\n")] = '\0';
-
-                    sock = socket(AF_UNIX, SOCK_STREAM, 0);
-                    if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+                    while (1)
                     {
-                        perror("connect");
-                        close(sock);
-                        continue;
-                    }
-                    req.cmd = CMD_REGISTER;
-                    strcpy(req.arg1, username);
-                    strcpy(req.arg2, password);
-                    write(sock, &req, sizeof(req));
-                    n = read(sock, response, sizeof(response) - 1);
-                    close(sock);
-                    if (n > 0)
-                    {
-                        response[n] = '\0';
-                        trim_whitespace(response);
-                        if (strcmp(response, "OK") == 0)
+                        printf("your user name: ");
+                        fflush(stdout);
+                        fgets(username, sizeof(username), stdin);
+                        username[strcspn(username, "\r\n")] = '\0';
+
+                        printf("your password: ");
+                        fflush(stdout);
+                        if (!read_secret(password, sizeof(password)))
+                            return 0;
+
+                        sock = socket(AF_UNIX, SOCK_STREAM, 0);
+                        if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
                         {
-                            printf("Create success !\n");
-                            printf("Please login again.\n");
+                            perror("connect");
+                            close(sock);
+                            break;
+                        }
+                        req.cmd = CMD_REGISTER;
+                        strcpy(req.arg1, username);
+                        strcpy(req.arg2, password);
+                        write(sock, &req, sizeof(req));
+                        n = read(sock, response, sizeof(response) - 1);
+                        close(sock);
+                        if (n > 0)
+                        {
+                            response[n] = '\0';
+                            trim_whitespace(response);
+                            if (strcmp(response, "OK") == 0)
+                            {
+                                printf("Create success !\n");
+                                break;
+                            }
+                            if (strcmp(response, "USER_EXISTS") == 0)
+                            {
+                                printf("User name already exist !\n");
+                                continue;
+                            }
+                            printf("Register failed!\n");
                             continue;
                         }
                     }
-                    printf("Register failed!\n");
                 }
             }
         }

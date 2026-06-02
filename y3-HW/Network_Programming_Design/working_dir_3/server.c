@@ -23,6 +23,43 @@ void init_db(void)
         fprintf(stderr, "MySQL connect error: %s\n", mysql_error(db_conn));
         exit(1);
     }
+    const char *schema[] = {
+        "CREATE TABLE IF NOT EXISTS users ("
+        "username VARCHAR(32) PRIMARY KEY,"
+        "password VARCHAR(255) NOT NULL,"
+        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        ")",
+        "CREATE TABLE IF NOT EXISTS mails ("
+        "id INT AUTO_INCREMENT PRIMARY KEY,"
+        "to_user VARCHAR(32) NOT NULL,"
+        "from_user VARCHAR(32) NOT NULL,"
+        "content TEXT NOT NULL,"
+        "sent_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+        "FOREIGN KEY (to_user) REFERENCES users(username) ON DELETE CASCADE,"
+        "FOREIGN KEY (from_user) REFERENCES users(username) ON DELETE CASCADE"
+        ")",
+        "CREATE TABLE IF NOT EXISTS `groups` ("
+        "name VARCHAR(32) PRIMARY KEY,"
+        "owner VARCHAR(32) NOT NULL,"
+        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+        "FOREIGN KEY (owner) REFERENCES users(username) ON DELETE CASCADE"
+        ")",
+        "CREATE TABLE IF NOT EXISTS group_members ("
+        "group_name VARCHAR(32) NOT NULL,"
+        "username VARCHAR(32) NOT NULL,"
+        "PRIMARY KEY (group_name, username),"
+        "FOREIGN KEY (group_name) REFERENCES `groups`(name) ON DELETE CASCADE,"
+        "FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE"
+        ")",
+        NULL};
+    for (int i = 0; schema[i] != NULL; i++)
+    {
+        if (mysql_query(db_conn, schema[i]))
+        {
+            fprintf(stderr, "MySQL schema error: %s\n", mysql_error(db_conn));
+            exit(1);
+        }
+    }
     printf("MySQL connected successfully!\n");
 }
 
@@ -514,6 +551,8 @@ void gyell_to_group(const char *group_name, const char *sender, const char *msg)
     while ((row = mysql_fetch_row(res)))
     {
         const char *uname = row[0];
+        if (strcmp(uname, sender) == 0)
+            continue;
         for (int i = 0; i < user_count; i++)
         {
             if (users[i].tcp_fd != -1 && strcmp(users[i].name, uname) == 0)
@@ -748,15 +787,12 @@ void handle_local_request(int client_fd)
     }
     case CMD_REGISTER:
     {
-        int ret = register_user(req.arg1, req.arg2);
-        if (ret == 1)
-        {
+        if (user_exists(req.arg1))
+            snprintf(response, BUFFER_SIZE, "USER_EXISTS");
+        else if (register_user(req.arg1, req.arg2))
             snprintf(response, BUFFER_SIZE, "OK");
-        }
         else
-        {
             snprintf(response, BUFFER_SIZE, "Register failed!");
-        }
         break;
     }
     case CMD_LISTMAIL:
@@ -780,7 +816,7 @@ void handle_local_request(int client_fd)
     {
         int mail_id = atoi(req.arg1);
         if (delete_mail(mail_id, req.arg2))
-            snprintf(response, BUFFER_SIZE, "delete success !\n");
+            snprintf(response, BUFFER_SIZE, "delete accept!\n");
         else
             snprintf(response, BUFFER_SIZE, "Mail id unexist !\n");
         break;
@@ -794,7 +830,7 @@ void handle_local_request(int client_fd)
         else if (group_exists(req.arg1))
             snprintf(response, BUFFER_SIZE, "Group already exist !\n");
         else if (create_group(req.arg1, owner))
-            snprintf(response, BUFFER_SIZE, "Group create success!\n");
+            snprintf(response, BUFFER_SIZE, "Group created!\n");
         else
             snprintf(response, BUFFER_SIZE, "Group create failed!\n");
         break;
@@ -830,21 +866,13 @@ void handle_local_request(int client_fd)
             char *saveptr;
             char *token = strtok_r(userlist, ",", &saveptr);
             char success_list[1024] = {0};
-            char fail_notfound[1024] = {0};
-            char fail_already[1024] = {0};
 
             while (token)
             {
                 if (!user_exists(token))
-                {
-                    strcat(fail_notfound, token);
-                    strcat(fail_notfound, " ");
-                }
+                    snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), "%s not found !\n", token);
                 else if (is_member_of_group(req.arg1, token))
-                {
-                    strcat(fail_already, token);
-                    strcat(fail_already, " ");
-                }
+                    snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), "%s already in group !\n", token);
                 else
                 {
                     add_to_group(req.arg1, owner, token);
@@ -857,18 +885,6 @@ void handle_local_request(int client_fd)
             {
                 char tmp[BUFFER_SIZE];
                 snprintf(tmp, sizeof(tmp), "%sadd success !\n", success_list);
-                strcat(response, tmp);
-            }
-            if (strlen(fail_notfound) > 0)
-            {
-                char tmp[BUFFER_SIZE];
-                snprintf(tmp, sizeof(tmp), "%snot found !\n", fail_notfound);
-                strcat(response, tmp);
-            }
-            if (strlen(fail_already) > 0)
-            {
-                char tmp[BUFFER_SIZE];
-                snprintf(tmp, sizeof(tmp), "%salready in group !\n", fail_already);
                 strcat(response, tmp);
             }
             if (strlen(response) == 0)
@@ -884,7 +900,7 @@ void handle_local_request(int client_fd)
         else if (!group_exists(req.arg1))
             snprintf(response, BUFFER_SIZE, "Group not found !\n");
         else if (!is_member_of_group(req.arg1, username))
-            snprintf(response, BUFFER_SIZE, "You are not a member of this group.\n");
+            snprintf(response, BUFFER_SIZE, "Leave fault !\n");
         else if (leave_group(req.arg1, username))
             snprintf(response, BUFFER_SIZE, "Leave success !\n");
         else
@@ -912,23 +928,15 @@ void handle_local_request(int client_fd)
             char userlist[1024];
             strcpy(userlist, req.arg2);
             char *saveptr;
-            char *token = strtok_r(userlist, " ", &saveptr);
+            char *token = strtok_r(userlist, ",", &saveptr);
             char success_list[1024] = {0};
-            char fail_notfound[1024] = {0};
-            char fail_notingroup[1024] = {0};
 
             while (token)
             {
                 if (!user_exists(token))
-                {
-                    strcat(fail_notfound, token);
-                    strcat(fail_notfound, " ");
-                }
+                    snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), "%s not found !\n", token);
                 else if (!is_member_of_group(req.arg1, token))
-                {
-                    strcat(fail_notingroup, token);
-                    strcat(fail_notingroup, " ");
-                }
+                    snprintf(response + strlen(response), BUFFER_SIZE - strlen(response), "%s is not in group !\n", token);
                 else
                 {
                     remove_from_group(req.arg1, owner, token);
@@ -941,18 +949,6 @@ void handle_local_request(int client_fd)
             {
                 char tmp[BUFFER_SIZE];
                 snprintf(tmp, sizeof(tmp), "%sremove success !\n", success_list);
-                strcat(response, tmp);
-            }
-            if (strlen(fail_notfound) > 0)
-            {
-                char tmp[BUFFER_SIZE];
-                snprintf(tmp, sizeof(tmp), "%snot found !\n", fail_notfound);
-                strcat(response, tmp);
-            }
-            if (strlen(fail_notingroup) > 0)
-            {
-                char tmp[BUFFER_SIZE];
-                snprintf(tmp, sizeof(tmp), "%sis not in group !\n", fail_notingroup);
                 strcat(response, tmp);
             }
             if (strlen(response) == 0)
@@ -968,7 +964,7 @@ void handle_local_request(int client_fd)
         else if (!group_exists(req.arg1))
             snprintf(response, BUFFER_SIZE, "Group not found !\n");
         else if (!is_member_of_group(req.arg1, self->name))
-            snprintf(response, BUFFER_SIZE, "You are not a member of this group.\n");
+            snprintf(response, BUFFER_SIZE, "You are not a member of group %s\n", req.arg1);
         else
         {
             gyell_to_group(req.arg1, self->name, req.arg2);

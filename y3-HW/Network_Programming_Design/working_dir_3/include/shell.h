@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <termios.h>
 
 #define MAX_LINE 5000
 #define MAX_CMD 256

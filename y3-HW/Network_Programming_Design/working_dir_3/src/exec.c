@@ -74,6 +74,13 @@ int exec_external(char **args, int input_fd, int output_fd)
             close(output_fd);
         int status;
         waitpid(pid, &status, 0);
-        return WEXITSTATUS(status);
+        if (WIFEXITED(status))
+        {
+            int code = WEXITSTATUS(status);
+            if (code == 99)
+                return -2;
+            return code;
+        }
+        return -1;
     }
 }
