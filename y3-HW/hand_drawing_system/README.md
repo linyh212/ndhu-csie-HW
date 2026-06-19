@@ -59,7 +59,10 @@ hand_drawing_system/
 ### 步驟 1：複製專案
 
 ```bash
-cd hand_drawing_system
+git clone --filter=blob:none --sparse https://github.com/linyh212/ndhu-csie-HW.git
+cd ndhu-csie-HW
+git sparse-checkout set y3-HW/hand_drawing_system
+cd y3-HW/hand_drawing_system
 ```
 
 ### 步驟 2：建立虛擬環境並安裝依賴
