@@ -1,0 +1,29 @@
+camera:
+  device_id: 0
+  width: 1280
+  height: 720
+  target_fps: 30
+
+detection:
+  max_hands: 3
+
+tracking:
+  iou_threshold: 0.4
+  max_lost_frames: 5
+
+user_binding:
+  max_users: 3
+  default_colors:
+    - [0, 0, 255]    # 紅
+    - [0, 255, 0]    # 綠
+    - [255, 0, 0]    # 藍
+
+drawing:
+  pinch_threshold_ratio: 0.25
+  canvas_width: 1280
+  canvas_height: 720
+  brush_thickness: 4
+  one_euro:
+    min_cutoff: 2.0
+    beta: 0.05
+    d_cutoff: 1.0
