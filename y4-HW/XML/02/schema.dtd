@@ -1,0 +1,14 @@
+<!ELEMENT students (student+)>
+<!ELEMENT student (name, email, department, year, courses)>
+<!ATTLIST student
+          id ID #REQUIRED
+          status (active|inactive) "active">
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT email (#PCDATA)>
+<!ELEMENT department (#PCDATA)>
+<!ELEMENT year (#PCDATA)>
+<!ELEMENT courses (course+)>
+<!ELEMENT course (#PCDATA)>
+<!ATTLIST course
+          code CDATA #REQUIRED
+          credits CDATA #REQUIRED>

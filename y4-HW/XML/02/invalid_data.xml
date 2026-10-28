@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE students SYSTEM "schema.dtd">
+<students>
+    <student id="S001" status="unknown">
+        <name>test01</name>
+        <email>test01@example.com</email>
+        <department>
+            Computer Science and Information Engineering
+        </department>
+        <year>4</year>
+        <courses>
+            <course
+                code="CS301"
+                credits="3">
+                Database Systems
+            </course>
+            <course
+                code="CS402"
+                credits="3">
+                Web Programming
+            </course>
+        </courses>
+    </student>
+
+    <student id="S002">
+        <name>test02</name>
+        <email>test02@example.com</email>
+        <department>
+            Computer Science and Information Engineering
+        </department>
+        <year>3</year>
+        <courses>
+            <course
+                code="CS201"
+                credits="3">
+                Data Structures
+            </course>
+        </courses>
+    </student>
+</students>
